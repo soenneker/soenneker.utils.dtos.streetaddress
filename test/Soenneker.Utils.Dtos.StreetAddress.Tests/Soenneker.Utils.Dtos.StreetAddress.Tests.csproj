@@ -31,7 +31,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\src\Soenneker.Utils.Dtos.StreetAddress.csproj" />
+        <ProjectReference Include="..\..\src\Soenneker.Utils.Dtos.StreetAddress.csproj" />
     </ItemGroup>
 
 </Project>
