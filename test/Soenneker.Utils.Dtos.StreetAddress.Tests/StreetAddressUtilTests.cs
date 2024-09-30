@@ -34,6 +34,26 @@ public class StreetAddressUtilTests : FixturedUnitTest
     }
 
     [Fact]
+    public void Parse_USPS_address()
+    {
+        const string address = """
+                               123 Street Address
+                               Option Street 2
+                               City ST 12345-9876
+                               USA
+                               """;
+
+        Soenneker.Dtos.StreetAddress.StreetAddress result = StreetAddressUtil.Parse(address);
+
+        result.Street1.Should().Be("123 Street Address");
+        result.Street2.Should().Be("Option Street 2");
+        result.City.Should().Be("City");
+        result.State.Should().Be("ST");
+        result.PostalCode.Should().Be("12345-9876");
+        result.Country.Should().Be("USA");
+    }
+
+    [Fact]
     public void Parse_InvalidAddress_ThrowsFormatException()
     {
         // Arrange

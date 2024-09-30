@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.1</TargetFrameworks>
+        <TargetFrameworks>net8.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <Platforms>AnyCPU</Platforms>
         <NoWarn>$(NoWarn);1591</NoWarn>
@@ -42,6 +42,7 @@
     </ItemGroup>
     
     <ItemGroup>
-      <PackageReference Include="Soenneker.Dtos.StreetAddress" Version="2.1.84" />
+      <PackageReference Include="Soenneker.Dtos.StreetAddress" Version="2.1.98" />
+      <PackageReference Include="Soenneker.Extensions.String" Version="2.1.250" />
     </ItemGroup>
 </Project>
