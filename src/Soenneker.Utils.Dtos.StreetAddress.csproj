@@ -42,7 +42,7 @@
     </ItemGroup>
     
     <ItemGroup>
-      <PackageReference Include="Soenneker.Dtos.StreetAddress" Version="3.0.200" />
+      <PackageReference Include="Soenneker.Dtos.StreetAddress" Version="3.0.201" />
       <PackageReference Include="Soenneker.Extensions.String" Version="3.0.316" />
     </ItemGroup>
 </Project>
