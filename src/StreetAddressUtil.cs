@@ -1,7 +1,5 @@
-using Soenneker.Extensions.String;
 using System;
-using System.Linq;
-using System.Text.RegularExpressions;
+using Soenneker.Extensions.String;
 
 namespace Soenneker.Utils.Dtos.StreetAddress;
 
@@ -10,18 +8,10 @@ namespace Soenneker.Utils.Dtos.StreetAddress;
 /// </summary>
 public static class StreetAddressUtil
 {
-    /// <summary>
-    /// Parses a formatted address string into a StreetAddress object.
-    /// </summary>
-    /// <param name="address">The address string to parse.</param>
-    /// <returns>A StreetAddress object.</returns>
-    /// <exception cref="FormatException">Thrown when the address string is not in the expected format.</exception>
     public static Soenneker.Dtos.StreetAddress.StreetAddress Parse(string address)
     {
         if (TryParse(address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress))
-        {
             return streetAddress!;
-        }
 
         throw new FormatException("The address string is not in the expected format.");
     }
@@ -33,43 +23,61 @@ public static class StreetAddressUtil
         if (address.IsNullOrWhiteSpace())
             return false;
 
-        // Determine if the address is in comma-separated format or multi-line format
-        bool isCommaSeparated = address.Contains(',');
+        bool isCommaSeparated = address.IndexOf(',') >= 0;
 
         return isCommaSeparated
             ? TryParseCommaSeparatedAddress(address, out streetAddress)
             : TryParseMultiLineAddress(address, out streetAddress);
     }
 
-    // Method for parsing comma-separated addresses
     private static bool TryParseCommaSeparatedAddress(string address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress)
     {
         streetAddress = null;
 
-        // Split by commas for comma-separated addresses
-        string[] parts = address.Split([','], StringSplitOptions.RemoveEmptyEntries)
-                                .Select(p => p.Trim())
-                                .ToArray();
+        Span<char> buffer = stackalloc char[address.Length];
+        address.CopyTo(buffer);
 
-        if (parts.Length < 4)
-            return false; // Ensure we have at least street, city, state, and country
+        var partCount = 0;
+        var parts = new string[8];
+        var start = 0;
+
+        for (var i = 0; i <= buffer.Length; i++)
+        {
+            if (i == buffer.Length || buffer[i] == ',')
+            {
+                if (partCount >= parts.Length)
+                    break;
+
+                int len = i - start;
+                if (len > 0)
+                {
+                    parts[partCount++] = new string(buffer.Slice(start, len)).Trim();
+                }
+
+                start = i + 1;
+            }
+        }
+
+        if (partCount < 4)
+            return false;
 
         try
         {
-            // Extract components
-            string street1 = parts[0].Trim();
-            string? street2 = parts.Length > 4 ? parts[1].Trim() : null;
-            string city = parts[street2 != null ? 2 : 1].Trim();
-            string state = parts[street2 != null ? 3 : 2].Trim();
-            string postalCode = parts[street2 != null ? 4 : 3].Trim();
-            string? country = parts.Length > (street2 != null ? 5 : 4) ? parts[street2 != null ? 5 : 4].Trim() : null;
-            string? additionalInfo = parts.Length > (street2 != null ? 6 : 5) ? string.Join(", ", parts.Skip(street2 != null ? 6 : 5)) : null;
+            bool hasLine2 = partCount > 4;
 
-            // Assign parsed values to the StreetAddress object
+            var idx = 0;
+            string line1 = parts[idx++];
+            string? line2 = hasLine2 ? parts[idx++] : null;
+            string city = parts[idx++];
+            string state = parts[idx++];
+            string postalCode = parts[idx++];
+            string? country = partCount > idx ? parts[idx++] : null;
+            string? additionalInfo = partCount > idx ? string.Join(", ", parts, idx, partCount - idx) : null;
+
             streetAddress = new Soenneker.Dtos.StreetAddress.StreetAddress
             {
-                Street1 = street1,
-                Street2 = street2,
+                Line1 = line1,
+                Line2 = line2,
                 City = city,
                 State = state,
                 PostalCode = postalCode,
@@ -85,41 +93,47 @@ public static class StreetAddressUtil
         }
     }
 
-    // Method for parsing multi-line addresses
     private static bool TryParseMultiLineAddress(string address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress)
     {
         streetAddress = null;
 
-        // Split by newlines for multi-line addresses
-        string[] parts = address.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-                                .Select(p => p.Trim())
-                                .ToArray();
+        string[] lines = address.Split('\n', '\r');
+        var count = 0;
+        var parts = new string[6];
 
-        if (parts.Length < 3)
-            return false; // Ensure we have at least street, city/state/postal, and country
+        foreach (string line in lines)
+        {
+            string trimmed = line.Trim();
+            if (trimmed.Length == 0)
+                continue;
+
+            if (count >= parts.Length)
+                break;
+
+            parts[count++] = trimmed;
+        }
+
+        if (count < 3)
+            return false;
 
         try
         {
-            string street1 = parts[0].Trim();
-            string? street2 = parts.Length > 3 ? parts[1].Trim() : null;
-            string cityStatePostal = parts[street2 != null ? 2 : 1].Trim();
+            string line1 = parts[0];
+            string? line2 = count > 3 ? parts[1] : null;
+            string cityStatePostal = parts[line2 != null ? 2 : 1];
+            string country = parts[line2 != null ? 3 : 2];
 
-            // Use the helper method to extract city, state, and postal code
             if (!TryExtractCityStatePostal(cityStatePostal, out string city, out string state, out string postalCode))
                 return false;
 
-            string country = parts[street2 != null ? 3 : 2].Trim();
-
-            // Assign parsed values to the StreetAddress object
             streetAddress = new Soenneker.Dtos.StreetAddress.StreetAddress
             {
-                Street1 = street1,
-                Street2 = street2,
+                Line1 = line1,
+                Line2 = line2,
                 City = city,
                 State = state,
                 PostalCode = postalCode,
-                Country = country,
-                AdditionalInfo = null // Handle additional info separately if needed
+                Country = country
             };
 
             return true;
@@ -130,22 +144,27 @@ public static class StreetAddressUtil
         }
     }
 
-    // Helper method for extracting city, state, and postal code from a single line
-    private static bool TryExtractCityStatePostal(string cityStatePostal, out string city, out string state, out string postalCode)
+    private static bool TryExtractCityStatePostal(string input, out string city, out string state, out string postalCode)
     {
         city = "";
         state = "";
         postalCode = "";
 
-        // Use a regular expression to extract city, state, and postal code
-        Match match = Regex.Match(cityStatePostal, @"^(.*)\s+([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)$");
+        ReadOnlySpan<char> span = input.AsSpan().Trim();
 
-        if (!match.Success)
+        int lastSpace = span.LastIndexOf(' ');
+        if (lastSpace == -1) return false;
+
+        int secondLastSpace = span.Slice(0, lastSpace).LastIndexOf(' ');
+        if (secondLastSpace == -1) return false;
+
+        city = span.Slice(0, secondLastSpace).ToString().Trim();
+        state = span.Slice(secondLastSpace, lastSpace - secondLastSpace).ToString().Trim();
+        postalCode = span.Slice(lastSpace).ToString().Trim();
+
+        // State must be 2 letters and postal code must be 5+ characters
+        if (state.Length != 2 || postalCode.Length < 5)
             return false;
-
-        city = match.Groups[1].Value.Trim();
-        state = match.Groups[2].Value.Trim();
-        postalCode = match.Groups[3].Value.Trim();
 
         return true;
     }

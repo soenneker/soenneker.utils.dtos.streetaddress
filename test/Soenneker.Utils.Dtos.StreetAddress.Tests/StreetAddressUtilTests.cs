@@ -3,7 +3,6 @@ using System;
 using FluentAssertions;
 using Xunit;
 
-
 namespace Soenneker.Utils.Dtos.StreetAddress.Tests;
 
 [Collection("Collection")]
@@ -24,8 +23,8 @@ public class StreetAddressUtilTests : FixturedUnitTest
         Soenneker.Dtos.StreetAddress.StreetAddress result = StreetAddressUtil.Parse(address);
 
         // Assert
-        result.Street1.Should().Be("123 Main St");
-        result.Street2.Should().Be("Apt 4B");
+        result.Line1.Should().Be("123 Main St");
+        result.Line2.Should().Be("Apt 4B");
         result.City.Should().Be("Springfield");
         result.State.Should().Be("IL");
         result.PostalCode.Should().Be("62704");
@@ -45,8 +44,8 @@ public class StreetAddressUtilTests : FixturedUnitTest
 
         Soenneker.Dtos.StreetAddress.StreetAddress result = StreetAddressUtil.Parse(address);
 
-        result.Street1.Should().Be("123 Street Address");
-        result.Street2.Should().Be("Option Street 2");
+        result.Line1.Should().Be("123 Street Address");
+        result.Line2.Should().Be("Option Street 2");
         result.City.Should().Be("City");
         result.State.Should().Be("ST");
         result.PostalCode.Should().Be("12345-9876");
@@ -78,8 +77,8 @@ public class StreetAddressUtilTests : FixturedUnitTest
         // Assert
         success.Should().BeTrue();
         result.Should().NotBeNull();
-        result!.Street1.Should().Be("123 Main St");
-        result.Street2.Should().Be("Apt 4B");
+        result!.Line1.Should().Be("123 Main St");
+        result.Line2.Should().Be("Apt 4B");
         result.City.Should().Be("Springfield");
         result.State.Should().Be("IL");
         result.PostalCode.Should().Be("62704");
@@ -113,8 +112,8 @@ public class StreetAddressUtilTests : FixturedUnitTest
         // Assert
         success.Should().BeTrue();
         result.Should().NotBeNull();
-        result!.Street1.Should().Be("123 Main St");
-        result.Street2.Should().BeNull();
+        result!.Line1.Should().Be("123 Main St");
+        result.Line2.Should().BeNull();
         result.City.Should().Be("Springfield");
         result.State.Should().Be("IL");
         result.PostalCode.Should().Be("62704");
