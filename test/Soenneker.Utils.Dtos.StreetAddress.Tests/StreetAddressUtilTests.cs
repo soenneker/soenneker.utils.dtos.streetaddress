@@ -1,6 +1,6 @@
 using Soenneker.Tests.FixturedUnit;
 using System;
-using FluentAssertions;
+using AwesomeAssertions;
 using Xunit;
 
 namespace Soenneker.Utils.Dtos.StreetAddress.Tests;
