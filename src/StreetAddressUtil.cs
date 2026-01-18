@@ -1,5 +1,6 @@
 using System;
-using Soenneker.Extensions.String;
+using System.Diagnostics.Contracts;
+using Soenneker.Extensions.Spans.Readonly.Chars;
 
 namespace Soenneker.Utils.Dtos.StreetAddress;
 
@@ -8,164 +9,160 @@ namespace Soenneker.Utils.Dtos.StreetAddress;
 /// </summary>
 public static class StreetAddressUtil
 {
+    private const int MaxCommaParts = 8;
+    private const int MaxLines = 6;
+
+    [Pure]
     public static Soenneker.Dtos.StreetAddress.StreetAddress Parse(string address)
     {
-        if (TryParse(address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress))
+        if (TryParse(address, out var streetAddress))
             return streetAddress!;
 
         throw new FormatException("The address string is not in the expected format.");
     }
 
+    [Pure]
     public static bool TryParse(string address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress)
     {
         streetAddress = null;
 
-        if (address.IsNullOrWhiteSpace())
+        if (string.IsNullOrWhiteSpace(address))
             return false;
 
-        bool isCommaSeparated = address.IndexOf(',') >= 0;
-
-        return isCommaSeparated
-            ? TryParseCommaSeparatedAddress(address, out streetAddress)
-            : TryParseMultiLineAddress(address, out streetAddress);
+        // Avoid scanning twice unless needed
+        ReadOnlySpan<char> span = address.AsSpan();
+        return span.IndexOf(',') >= 0
+            ? TryParseCommaSeparatedAddress(span, out streetAddress)
+            : TryParseMultiLineAddress(span, out streetAddress);
     }
 
-    private static bool TryParseCommaSeparatedAddress(string address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress)
+    private static bool TryParseCommaSeparatedAddress(ReadOnlySpan<char> address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress)
     {
         streetAddress = null;
 
-        Span<char> buffer = stackalloc char[address.Length];
-        address.CopyTo(buffer);
-
-        var partCount = 0;
-        var parts = new string[8];
-        var start = 0;
-
-        for (var i = 0; i <= buffer.Length; i++)
-        {
-            if (i == buffer.Length || buffer[i] == ',')
-            {
-                if (partCount >= parts.Length)
-                    break;
-
-                int len = i - start;
-                if (len > 0)
-                {
-                    parts[partCount++] = new string(buffer.Slice(start, len)).Trim();
-                }
-
-                start = i + 1;
-            }
-        }
+        Span<Range> ranges = stackalloc Range[MaxCommaParts];
+        int partCount = address.SplitCommaRanges(ranges);
 
         if (partCount < 4)
             return false;
 
-        try
-        {
-            bool hasLine2 = partCount > 4;
+        // Treat "Line2" as present when there are > 4 parts, matching your original logic.
+        bool hasLine2 = partCount > 4;
 
-            var idx = 0;
-            string line1 = parts[idx++];
-            string? line2 = hasLine2 ? parts[idx++] : null;
-            string city = parts[idx++];
-            string state = parts[idx++];
-            string postalCode = parts[idx++];
-            string? country = partCount > idx ? parts[idx++] : null;
-            string? additionalInfo = partCount > idx ? string.Join(", ", parts, idx, partCount - idx) : null;
+        int idx = 0;
 
-            streetAddress = new Soenneker.Dtos.StreetAddress.StreetAddress
-            {
-                Line1 = line1,
-                Line2 = line2,
-                City = city,
-                State = state,
-                PostalCode = postalCode,
-                Country = country,
-                AdditionalInfo = additionalInfo
-            };
+        ReadOnlySpan<char> line1Span = address[ranges[idx++]].Trim();
+        ReadOnlySpan<char> line2Span = hasLine2 ? address[ranges[idx++]].Trim() : default;
+        ReadOnlySpan<char> citySpan = address[ranges[idx++]].Trim();
+        ReadOnlySpan<char> stateSpan = address[ranges[idx++]].Trim();
+        ReadOnlySpan<char> postalSpan = idx < partCount ? address[ranges[idx++]].Trim() : default;
 
-            return true;
-        }
-        catch
-        {
+        if (line1Span.Length == 0 || citySpan.Length == 0 || stateSpan.Length == 0 || postalSpan.Length == 0)
             return false;
-        }
+
+        string line1 = line1Span.ToString();
+        string? line2 = hasLine2 && line2Span.Length != 0 ? line2Span.ToString() : null;
+        string city = citySpan.ToString();
+        string state = stateSpan.ToString();
+        string postalCode = postalSpan.ToString();
+
+        string? country = idx < partCount
+            ? address[ranges[idx++]].TrimToNull()
+            : null;
+
+        string? additionalInfo = idx < partCount
+            ? address.JoinCommaSeparated(ranges, idx, partCount - idx)
+            : null;
+
+        streetAddress = new Soenneker.Dtos.StreetAddress.StreetAddress
+        {
+            Line1 = line1,
+            Line2 = line2,
+            City = city,
+            State = state,
+            PostalCode = postalCode,
+            Country = country,
+            AdditionalInfo = additionalInfo
+        };
+
+        return true;
     }
 
-    private static bool TryParseMultiLineAddress(string address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress)
+    private static bool TryParseMultiLineAddress(ReadOnlySpan<char> address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress)
     {
         streetAddress = null;
 
-        string[] lines = address.Split('\n', '\r');
-        var count = 0;
-        var parts = new string[6];
-
-        foreach (string line in lines)
-        {
-            string trimmed = line.Trim();
-            if (trimmed.Length == 0)
-                continue;
-
-            if (count >= parts.Length)
-                break;
-
-            parts[count++] = trimmed;
-        }
+        Span<Range> ranges = stackalloc Range[MaxLines];
+        int count = address.SplitNonEmptyLineRanges(ranges);
 
         if (count < 3)
             return false;
 
-        try
-        {
-            string line1 = parts[0];
-            string? line2 = count > 3 ? parts[1] : null;
-            string cityStatePostal = parts[line2 != null ? 2 : 1];
-            string country = parts[line2 != null ? 3 : 2];
-
-            if (!TryExtractCityStatePostal(cityStatePostal, out string city, out string state, out string postalCode))
-                return false;
-
-            streetAddress = new Soenneker.Dtos.StreetAddress.StreetAddress
-            {
-                Line1 = line1,
-                Line2 = line2,
-                City = city,
-                State = state,
-                PostalCode = postalCode,
-                Country = country
-            };
-
-            return true;
-        }
-        catch
-        {
+        ReadOnlySpan<char> line1Span = address[ranges[0]].Trim();
+        if (line1Span.Length == 0)
             return false;
-        }
+
+        // Original behavior:
+        // - If count > 3 => line2 = parts[1]
+        // - Otherwise no line2
+        bool hasLine2 = count > 3;
+
+        ReadOnlySpan<char> line2Span = hasLine2 ? address[ranges[1]].Trim() : default;
+
+        ReadOnlySpan<char> cityStatePostalSpan = address[ranges[hasLine2 ? 2 : 1]].Trim();
+        ReadOnlySpan<char> countrySpan = address[ranges[hasLine2 ? 3 : 2]].Trim();
+
+        if (cityStatePostalSpan.Length == 0 || countrySpan.Length == 0)
+            return false;
+
+        if (!TryExtractCityStatePostal(cityStatePostalSpan, out string city, out string state, out string postalCode))
+            return false;
+
+        streetAddress = new Soenneker.Dtos.StreetAddress.StreetAddress
+        {
+            Line1 = line1Span.ToString(),
+            Line2 = hasLine2 && line2Span.Length != 0 ? line2Span.ToString() : null,
+            City = city,
+            State = state,
+            PostalCode = postalCode,
+            Country = countrySpan.ToString()
+        };
+
+        return true;
     }
 
-    private static bool TryExtractCityStatePostal(string input, out string city, out string state, out string postalCode)
+    // Parses: "City ST 12345" where ST = 2 letters, postal len >= 5
+    private static bool TryExtractCityStatePostal(ReadOnlySpan<char> span, out string city, out string state, out string postalCode)
     {
         city = "";
         state = "";
         postalCode = "";
 
-        ReadOnlySpan<char> span = input.AsSpan().Trim();
+        span = span.Trim();
 
         int lastSpace = span.LastIndexOf(' ');
-        if (lastSpace == -1) return false;
-
-        int secondLastSpace = span.Slice(0, lastSpace).LastIndexOf(' ');
-        if (secondLastSpace == -1) return false;
-
-        city = span.Slice(0, secondLastSpace).ToString().Trim();
-        state = span.Slice(secondLastSpace, lastSpace - secondLastSpace).ToString().Trim();
-        postalCode = span.Slice(lastSpace).ToString().Trim();
-
-        // State must be 2 letters and postal code must be 5+ characters
-        if (state.Length != 2 || postalCode.Length < 5)
+        if (lastSpace <= 0 || lastSpace == span.Length - 1)
             return false;
 
+        ReadOnlySpan<char> postalSpan = span.Slice(lastSpace + 1).Trim();
+        ReadOnlySpan<char> beforePostal = span.Slice(0, lastSpace).Trim();
+
+        int secondLastSpace = beforePostal.LastIndexOf(' ');
+        if (secondLastSpace <= 0 || secondLastSpace == beforePostal.Length - 1)
+            return false;
+
+        ReadOnlySpan<char> stateSpan = beforePostal.Slice(secondLastSpace + 1).Trim();
+        ReadOnlySpan<char> citySpan = beforePostal.Slice(0, secondLastSpace).Trim();
+
+        if (stateSpan.Length != 2 || postalSpan.Length < 5 || citySpan.Length == 0)
+            return false;
+
+        // If you want to enforce letters-only state codes cheaply:
+        // if (!char.IsLetter(stateSpan[0]) || !char.IsLetter(stateSpan[1])) return false;
+
+        city = citySpan.ToString();
+        state = stateSpan.ToString();
+        postalCode = postalSpan.ToString();
         return true;
     }
 }
