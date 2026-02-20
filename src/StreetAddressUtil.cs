@@ -9,13 +9,13 @@ namespace Soenneker.Utils.Dtos.StreetAddress;
 /// </summary>
 public static class StreetAddressUtil
 {
-    private const int MaxCommaParts = 8;
-    private const int MaxLines = 6;
+    private const int _maxCommaParts = 8;
+    private const int _maxLines = 6;
 
     [Pure]
     public static Soenneker.Dtos.StreetAddress.StreetAddress Parse(string address)
     {
-        if (TryParse(address, out var streetAddress))
+        if (TryParse(address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress))
             return streetAddress!;
 
         throw new FormatException("The address string is not in the expected format.");
@@ -40,7 +40,7 @@ public static class StreetAddressUtil
     {
         streetAddress = null;
 
-        Span<Range> ranges = stackalloc Range[MaxCommaParts];
+        Span<Range> ranges = stackalloc Range[_maxCommaParts];
         int partCount = address.SplitCommaRanges(ranges);
 
         if (partCount < 4)
@@ -49,7 +49,7 @@ public static class StreetAddressUtil
         // Treat "Line2" as present when there are > 4 parts, matching your original logic.
         bool hasLine2 = partCount > 4;
 
-        int idx = 0;
+        var idx = 0;
 
         ReadOnlySpan<char> line1Span = address[ranges[idx++]].Trim();
         ReadOnlySpan<char> line2Span = hasLine2 ? address[ranges[idx++]].Trim() : default;
@@ -60,11 +60,11 @@ public static class StreetAddressUtil
         if (line1Span.Length == 0 || citySpan.Length == 0 || stateSpan.Length == 0 || postalSpan.Length == 0)
             return false;
 
-        string line1 = line1Span.ToString();
+        var line1 = line1Span.ToString();
         string? line2 = hasLine2 && line2Span.Length != 0 ? line2Span.ToString() : null;
-        string city = citySpan.ToString();
-        string state = stateSpan.ToString();
-        string postalCode = postalSpan.ToString();
+        var city = citySpan.ToString();
+        var state = stateSpan.ToString();
+        var postalCode = postalSpan.ToString();
 
         string? country = idx < partCount
             ? address[ranges[idx++]].TrimToNull()
@@ -92,7 +92,7 @@ public static class StreetAddressUtil
     {
         streetAddress = null;
 
-        Span<Range> ranges = stackalloc Range[MaxLines];
+        Span<Range> ranges = stackalloc Range[_maxLines];
         int count = address.SplitNonEmptyLineRanges(ranges);
 
         if (count < 3)
@@ -144,15 +144,15 @@ public static class StreetAddressUtil
         if (lastSpace <= 0 || lastSpace == span.Length - 1)
             return false;
 
-        ReadOnlySpan<char> postalSpan = span.Slice(lastSpace + 1).Trim();
-        ReadOnlySpan<char> beforePostal = span.Slice(0, lastSpace).Trim();
+        ReadOnlySpan<char> postalSpan = span[(lastSpace + 1)..].Trim();
+        ReadOnlySpan<char> beforePostal = span[..lastSpace].Trim();
 
         int secondLastSpace = beforePostal.LastIndexOf(' ');
         if (secondLastSpace <= 0 || secondLastSpace == beforePostal.Length - 1)
             return false;
 
-        ReadOnlySpan<char> stateSpan = beforePostal.Slice(secondLastSpace + 1).Trim();
-        ReadOnlySpan<char> citySpan = beforePostal.Slice(0, secondLastSpace).Trim();
+        ReadOnlySpan<char> stateSpan = beforePostal[(secondLastSpace + 1)..].Trim();
+        ReadOnlySpan<char> citySpan = beforePostal[..secondLastSpace].Trim();
 
         if (stateSpan.Length != 2 || postalSpan.Length < 5 || citySpan.Length == 0)
             return false;
