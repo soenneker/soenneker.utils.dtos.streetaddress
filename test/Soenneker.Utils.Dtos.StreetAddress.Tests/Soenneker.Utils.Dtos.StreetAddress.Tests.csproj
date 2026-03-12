@@ -26,7 +26,7 @@
     <PackageReference Include="xUnit.v3" Version="3.2.2" /></ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Soenneker.Utils.Dtos.StreetAddress.csproj" />
+        <ProjectReference Include="..\..\src\Soenneker.Utils.Dtos.StreetAddress\Soenneker.Utils.Dtos.StreetAddress.csproj" />
     </ItemGroup>
 
     <ItemGroup>
