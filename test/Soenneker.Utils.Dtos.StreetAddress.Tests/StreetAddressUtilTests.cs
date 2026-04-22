@@ -1,19 +1,18 @@
-using Soenneker.Tests.FixturedUnit;
+using Soenneker.Tests.HostedUnit;
 using System;
 using AwesomeAssertions;
-using Xunit;
 
 namespace Soenneker.Utils.Dtos.StreetAddress.Tests;
 
-[Collection("Collection")]
-public class StreetAddressUtilTests : FixturedUnitTest
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
+public class StreetAddressUtilTests : HostedUnitTest
 {
 
-    public StreetAddressUtilTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public StreetAddressUtilTests(Host host) : base(host)
     {
     }
 
-    [Fact]
+    [Test]
     public void Parse_ValidAddress_ReturnsStreetAddress()
     {
         // Arrange
@@ -32,7 +31,7 @@ public class StreetAddressUtilTests : FixturedUnitTest
         result.AdditionalInfo.Should().Be("Near the big park");
     }
 
-    [Fact]
+    [Test]
     public void Parse_USPS_address()
     {
         const string address = """
@@ -52,7 +51,7 @@ public class StreetAddressUtilTests : FixturedUnitTest
         result.Country.Should().Be("USA");
     }
 
-    [Fact]
+    [Test]
     public void Parse_InvalidAddress_ThrowsFormatException()
     {
         // Arrange
@@ -65,7 +64,7 @@ public class StreetAddressUtilTests : FixturedUnitTest
         act.Should().Throw<FormatException>().WithMessage("The address string is not in the expected format.");
     }
 
-    [Fact]
+    [Test]
     public void TryParse_ValidAddress_ReturnsTrueAndStreetAddress()
     {
         // Arrange
@@ -86,7 +85,7 @@ public class StreetAddressUtilTests : FixturedUnitTest
         result.AdditionalInfo.Should().Be("Near the big park");
     }
 
-    [Fact]
+    [Test]
     public void TryParse_InvalidAddress_ReturnsFalse()
     {
         // Arrange
@@ -100,7 +99,7 @@ public class StreetAddressUtilTests : FixturedUnitTest
         result.Should().BeNull();
     }
 
-    [Fact]
+    [Test]
     public void TryParse_MissingOptionalFields_ReturnsTrueAndStreetAddress()
     {
         // Arrange
