@@ -12,6 +12,11 @@ public static class StreetAddressUtil
     private const int _maxCommaParts = 8;
     private const int _maxLines = 6;
 
+    /// <summary>
+    /// Executes the parse operation.
+    /// </summary>
+    /// <param name="address">The address.</param>
+    /// <returns>The result of the operation.</returns>
     [Pure]
     public static Soenneker.Dtos.StreetAddress.StreetAddress Parse(string address)
     {
@@ -21,6 +26,12 @@ public static class StreetAddressUtil
         throw new FormatException("The address string is not in the expected format.");
     }
 
+    /// <summary>
+    /// Attempts to execute parse.
+    /// </summary>
+    /// <param name="address">The address.</param>
+    /// <param name="streetAddress">The street address.</param>
+    /// <returns>A value indicating whether the operation succeeded.</returns>
     [Pure]
     public static bool TryParse(string address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress)
     {
