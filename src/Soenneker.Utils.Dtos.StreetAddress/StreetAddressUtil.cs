@@ -13,10 +13,10 @@ public static class StreetAddressUtil
     private const int _maxLines = 6;
 
     /// <summary>
-    /// Executes the parse operation.
+    /// Parses a free-form U.S. street-address string into structured address components.
     /// </summary>
-    /// <param name="address">The address.</param>
-    /// <returns>The result of the operation.</returns>
+    /// <param name="address">The free-form address text.</param>
+    /// <returns>The structured address.</returns>
     [Pure]
     public static Soenneker.Dtos.StreetAddress.StreetAddress Parse(string address)
     {
@@ -27,11 +27,11 @@ public static class StreetAddressUtil
     }
 
     /// <summary>
-    /// Attempts to execute parse.
+    /// Attempts to parse a free-form U.S. street address without throwing for an unrecognized format.
     /// </summary>
-    /// <param name="address">The address.</param>
-    /// <param name="streetAddress">The street address.</param>
-    /// <returns>A value indicating whether the operation succeeded.</returns>
+    /// <param name="address">The free-form address text.</param>
+    /// <param name="streetAddress">Receives the parsed address on success.</param>
+    /// <returns>True when the address was recognized.</returns>
     [Pure]
     public static bool TryParse(string address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress)
     {
