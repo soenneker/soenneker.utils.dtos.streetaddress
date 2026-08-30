@@ -119,4 +119,22 @@ public class StreetAddressUtilTests : HostedUnitTest
         result.Country.Should().BeNull();
         result.AdditionalInfo.Should().BeNull();
     }
+
+    [Test]
+    public void TryParse_CountryWithoutLine2_MapsFieldsCorrectly()
+    {
+        const string address = "123 Main St, Springfield, IL, 62704, USA";
+
+        bool success = StreetAddressUtil.TryParse(address, out Soenneker.Dtos.StreetAddress.StreetAddress? result);
+
+        success.Should().BeTrue();
+        result.Should().NotBeNull();
+        result!.Line1.Should().Be("123 Main St");
+        result.Line2.Should().BeNull();
+        result.City.Should().Be("Springfield");
+        result.State.Should().Be("IL");
+        result.PostalCode.Should().Be("62704");
+        result.Country.Should().Be("USA");
+        result.AdditionalInfo.Should().BeNull();
+    }
 }

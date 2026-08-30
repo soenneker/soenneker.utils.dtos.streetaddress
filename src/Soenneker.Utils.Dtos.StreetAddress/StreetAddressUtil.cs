@@ -57,8 +57,7 @@ public static class StreetAddressUtil
         if (partCount < 4)
             return false;
 
-        // Treat "Line2" as present when there are > 4 parts, matching your original logic.
-        bool hasLine2 = partCount > 4;
+        bool hasLine2 = !LooksLikeStateAndPostal(address[ranges[2]], address[ranges[3]]);
 
         var idx = 0;
 
@@ -97,6 +96,14 @@ public static class StreetAddressUtil
         };
 
         return true;
+    }
+
+    private static bool LooksLikeStateAndPostal(ReadOnlySpan<char> state, ReadOnlySpan<char> postalCode)
+    {
+        state = state.Trim();
+        postalCode = postalCode.Trim();
+
+        return state.Length == 2 && postalCode.Length >= 5;
     }
 
     private static bool TryParseMultiLineAddress(ReadOnlySpan<char> address, out Soenneker.Dtos.StreetAddress.StreetAddress? streetAddress)
